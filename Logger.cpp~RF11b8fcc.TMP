@@ -1,0 +1,97 @@
+#pragma once
+
+#include <fstream>
+#include <iostream>
+#include "_typedef.h"
+#include <stdio.h>
+
+#ifdef _WIN32
+#include <Windows.h>
+#include <wincon.h>
+#endif
+#define LOG_PATH "asd"
+enum LogLevel {
+	Info,
+	Warning,
+	Error,
+	Debug
+};
+
+class SLogger {
+public:
+	static inline SLogger* instance_ = nullptr;
+	static SLogger& getInstance(const char* logPath = LOG_PATH) {
+		if (!instance_) {
+			instance_ = new SLogger(logPath);
+		}
+		return *instance_;
+	}
+	std::ofstream file;
+	//static SLogger* instance_;
+	// "asdasdaljdhaslkjdfh %s", msg
+	void Log(LogLevel level, const char* format, ...) {
+		SLogger& logger = SLogger::getInstance();
+
+		char message[2048];
+		va_list args;
+		va_start(args, format);
+		vsnprintf(message, 2048, format, args);
+		va_end(args);
+		HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+		switch (level)
+		{
+		case Info:
+#ifdef _WIN32
+			SetConsoleTextAttribute(hConsole, 0x08);
+#endif
+			printf("[INFO] %s\n", message);
+			break;
+
+		case Warning:
+#ifdef _WIN32
+			SetConsoleTextAttribute(hConsole, 0x06);
+#endif
+			printf("[WARNING] %s\n", message);
+			break;
+
+		case Error:
+#ifdef _WIN32
+			SetConsoleTextAttribute(hConsole, 0x04);
+#endif
+			printf("[ERROR] %s\n", message);
+			break;
+
+		case Debug:
+#ifdef _WIN32
+			SetConsoleTextAttribute(hConsole, 0x05);
+#endif
+			printf("[DEBUG] %s\n", message);
+			break;
+		default:
+			printf("Invalid Level");
+			break;
+		}
+		//free(message); /*potential memory leak*/
+	}
+
+	~SLogger() {
+		if (file_.is_open()) {
+			file_.close();
+		}
+	}
+
+private:
+	SLogger(const char* logPath) : logPath_((char*)logPath) {
+		file_.open(logPath_, std::ios_base::app);
+		if (!file_.is_open()) {
+			printf("Error while opening log file!");
+		}
+	}
+
+	SLogger(const SLogger&) = delete;
+	SLogger& operator=(const SLogger&) = delete;
+
+	char* logPath_;
+	std::ofstream file_;
+
+};
